@@ -4,29 +4,45 @@ import os
 
 app = Flask(__name__)
 
-VERIFY_TOKEN = "my_verify_token"
 ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
+VERIFY_TOKEN = os.environ.get("VERIFY_TOKEN")
+
+@app.route("/", methods=["GET"])
+def home():
+    return "Bot is running", 200
 
 @app.route("/webhook", methods=["GET"])
 def verify():
-    if request.args.get("hub.mode") == "subscribe":
-        if request.args.get("hub.verify_token") == VERIFY_TOKEN:
-            return request.args.get("hub.challenge"), 200
-        else:
-            return "Verification token mismatch", 403
-    return "Hello world", 200
-
+    token = request.args.get("hub.verify_token")
+    challenge = request.args.get("hub.challenge")
+    if token == VERIFY_TOKEN:
+        return challenge, 200
+    return "Verification failed", 403
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    data = request.get_json()
-
+    data = request.json
     try:
         message = data["entry"][0]["changes"][0]["value"]["messages"][0]
         from_number = message["from"]
-        text = message["text"]["body"]
 
-        reply = "Шумо навиштед: " + text
+        url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
 
-        url =
+        headers = {
+            "Authorization": f"Bearer {ACCESS_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": from_number,
+            "type": "text",
+            "text": {"body": "Салом! Бот кор мекунад 🚀"}
+        }
+
+        requests.post(url, headers=headers, json=payload)
+    except:
+        pass
+
+    return "OK", 200
